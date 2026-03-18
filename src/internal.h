@@ -6,6 +6,9 @@
 #include <vector>
 #include <string>
 #include <chrono>
+#include <memory>
+
+struct sqlite3;
 
 namespace Metriqos::Internal {
 
@@ -23,6 +26,24 @@ struct Event {
     std::string mapId;
     std::unordered_map<std::string, std::string> device;
     std::string appVersion;
+};
+
+// storage.cpp
+class OfflineStorage {
+    sqlite3* db = nullptr;
+    int maxSize;
+public:
+    OfflineStorage(const std::string& path, int maxQueueSize);
+    ~OfflineStorage();
+
+    void store(const std::vector<Event>& events);
+    std::vector<std::string> retrieve(int limit);
+    void remove(int count);
+    void wipeNonExempt();
+    int count();
+
+private:
+    void trimToSize();
 };
 
 struct State {
@@ -44,6 +65,8 @@ struct State {
     int retryAfterSec = 0;
 
     std::unordered_map<std::string, std::string> deviceInfo;
+
+    std::unique_ptr<OfflineStorage> offlineStorage;
 };
 
 State& getState();

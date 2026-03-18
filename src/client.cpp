@@ -34,6 +34,14 @@ void init(const Config& config) {
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
+    // Initialize offline storage
+    try {
+        s.offlineStorage = std::make_unique<Internal::OfflineStorage>(
+            "metriqos_offline.db", config.offlineQueueSize);
+    } catch (const std::exception& e) {
+        Internal::log(LogLevel::Error, std::string("Failed to init offline storage: ") + e.what());
+    }
+
     if (config.collectDeviceInfo) {
         s.deviceInfo = Internal::collectDeviceInfo();
     }
@@ -58,6 +66,8 @@ void shutdown() {
 
     if (s.flushThread.joinable()) s.flushThread.join();
     if (s.heartbeatThread.joinable()) s.heartbeatThread.join();
+
+    s.offlineStorage.reset();
 
     curl_global_cleanup();
     Internal::log(LogLevel::Debug, "SDK shut down");
@@ -136,7 +146,7 @@ Status getStatus() {
         std::lock_guard<std::mutex> lock(s.queueMutex);
         st.queuedEvents = static_cast<int>(s.eventQueue.size());
     }
-    st.offlineEvents = 0; // offline storage not yet implemented
+    st.offlineEvents = s.offlineStorage ? s.offlineStorage->count() : 0;
     st.quotaRemaining = s.quotaRemaining;
     st.connected = true; // simplified for now
     return st;

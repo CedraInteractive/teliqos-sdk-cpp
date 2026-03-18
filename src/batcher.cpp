@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <algorithm>
 
 namespace Metriqos::Internal {
 
@@ -91,7 +92,12 @@ void doFlush() {
 
             int backoffMs = calculateBackoffMs(attempt, retryAfter);
             if (backoffMs < 0) {
-                log(LogLevel::Error, "Max retries exceeded, dropping " + std::to_string(batch.size()) + " events");
+                if (s.offlineStorage) {
+                    s.offlineStorage->store(batch);
+                    log(LogLevel::Warn, "Max retries exceeded, stored " + std::to_string(batch.size()) + " events offline");
+                } else {
+                    log(LogLevel::Error, "Max retries exceeded, dropping " + std::to_string(batch.size()) + " events");
+                }
                 return;
             }
 
@@ -107,11 +113,46 @@ void doFlush() {
     }
 }
 
+static void drainOfflineStorage() {
+    auto& s = getState();
+    if (!s.offlineStorage) return;
+
+    while (s.running.load() && s.offlineStorage->count() > 0) {
+        auto payloads = s.offlineStorage->retrieve(50);
+        if (payloads.empty()) break;
+
+        // Build a batch JSON wrapping the stored event payloads
+        nlohmann::json batch;
+        batch["events"] = nlohmann::json::array();
+        for (const auto& p : payloads) {
+            try {
+                batch["events"].push_back(nlohmann::json::parse(p));
+            } catch (...) {
+                // Skip malformed payloads
+            }
+        }
+
+        std::string url = s.config.endpoint + "/v1/events/batch";
+        auto resp = httpPost(url, batch.dump(), s.config.apiKey, kUserAgent);
+
+        if (resp.statusCode == 202) {
+            s.offlineStorage->remove(static_cast<int>(payloads.size()));
+            log(LogLevel::Debug, "Drained " + std::to_string(payloads.size()) + " offline events");
+        } else {
+            // Network still down or server error; stop draining
+            break;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+}
+
 void flushThreadLoop() {
     auto& s = getState();
     while (s.running.load()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(s.config.batchIntervalMs));
         if (!s.running.load()) break;
+        drainOfflineStorage();
         doFlush();
     }
 }
