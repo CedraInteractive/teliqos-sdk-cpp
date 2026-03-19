@@ -8,7 +8,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/CedraInteractive/metriqos-sdk-cpp/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+  <a href="https://github.com/CedraInteractive/metriqos-sdk-cpp/actions/workflows/ci.yml"><img src="https://github.com/CedraInteractive/metriqos-sdk-cpp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/CedraInteractive/metriqos-sdk-cpp/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
   <a href="https://metriqos.io"><img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-brightgreen.svg" alt="Platform"></a>
   <img src="https://img.shields.io/badge/C%2B%2B-17-blue.svg" alt="C++17">
 </p>
@@ -50,6 +51,17 @@ int main() {
 
 ## Integration
 
+### CMake FetchContent (recommended)
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(metriqos
+  GIT_REPOSITORY https://github.com/CedraInteractive/metriqos-sdk-cpp.git
+  GIT_TAG v0.1.0)
+FetchContent_MakeAvailable(metriqos)
+target_link_libraries(your_game PRIVATE metriqos)
+```
+
 ### CMake (add_subdirectory)
 
 ```cmake
@@ -57,13 +69,25 @@ add_subdirectory(metriqos-sdk-cpp)
 target_link_libraries(your_game PRIVATE metriqos)
 ```
 
+### Platform Support
+
+| Platform | Arch | Compiler | SSL Backend | CI Tested | Prebuilt |
+|----------|------|----------|-------------|-----------|----------|
+| Windows 10+ | x64 | MSVC 17+ | Schannel | ✅ | ✅ |
+| macOS 13+ | arm64 | Apple Clang 15+ | SecureTransport | ✅ | ✅ |
+| Ubuntu 22.04+ | x64 | GCC 11+ / Clang 14+ | OpenSSL | ✅ | ✅ |
+
+> **Game engines:** Tested with raylib 5.x. Unreal Engine integration available via [metriqos-sdk-unreal](https://github.com/CedraInteractive/metriqos-sdk-unreal) (coming soon).
+
 ### Dependencies
 
-All dependencies are handled automatically:
+All dependencies are handled automatically — no manual installation required:
 
-- **libcurl** — fetched via CMake FetchContent
-- **nlohmann/json** — fetched via CMake FetchContent
-- **SQLite3** — bundled in `third_party/`
+| Dependency | Method | Purpose |
+|-----------|--------|---------|
+| [libcurl](https://curl.se/) | CMake FetchContent | HTTPS transport |
+| [nlohmann/json](https://github.com/nlohmann/json) | CMake FetchContent | JSON serialization |
+| [SQLite3](https://sqlite.org/) | Bundled (`third_party/`) | Offline event queue |
 
 ## Build from Source
 
