@@ -23,7 +23,7 @@ Thank you for your interest in contributing! Here's how to get started.
 - **C++17** — no newer standard features
 - **No external dependencies** without discussion — we keep the SDK lightweight
 - **Thread safety** — any shared state must be protected
-- **Platform support** — changes should work on Windows, macOS, and Linux
+- **Platform support** — changes should work on Windows, macOS, Linux, and Android
 - **Tests** — new features need tests, bug fixes need a regression test
 
 ## Pull Request Process
