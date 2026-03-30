@@ -52,6 +52,7 @@ struct State {
     std::string playerId;
     std::string deviceId;
     std::string sessionId;
+    std::chrono::steady_clock::time_point sessionStartTime;
     std::unordered_map<std::string, std::string> userStrProps;
     std::unordered_map<std::string, double> userNumProps;
 

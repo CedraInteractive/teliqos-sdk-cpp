@@ -5,6 +5,7 @@ namespace Teliqos::Internal {
 void startSession() {
     auto& s = getState();
     s.sessionId = generateUUID();
+    s.sessionStartTime = std::chrono::steady_clock::now();
 
     Event e;
     e.eventName = "session_start";
@@ -30,6 +31,10 @@ void endSession() {
     e.deviceId = s.deviceId;
     e.timestamp = nowISO8601();
     e.appVersion = s.config.appVersion;
+
+    auto elapsed = std::chrono::steady_clock::now() - s.sessionStartTime;
+    double durationSec = std::chrono::duration<double>(elapsed).count();
+    e.nums["duration_sec"] = durationSec;
 
     enqueueEvent(std::move(e));
     log(LogLevel::Debug, "Session ended: " + s.sessionId);
